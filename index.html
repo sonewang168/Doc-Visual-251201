@@ -2144,10 +2144,10 @@
         .context-menu {
             position: fixed;
             background: var(--bg-secondary);
-            border: 1px solid var(--neon-cyan);
+            border: 2px solid var(--neon-cyan);
             border-radius: var(--radius-lg);
             padding: 8px;
-            z-index: 1000;
+            z-index: 10000;
             display: none;
             min-width: 180px;
             box-shadow: var(--glow-cyan), 0 10px 40px rgba(0,0,0,0.5);
@@ -3227,8 +3227,8 @@
                 
                 <!-- 手機版專用按鈕區（右側） -->
                 <div class="toolbar-group mobile-toolbar-btns" id="mobileToolbarBtns" style="display:none;">
-                    <button class="tool-btn mobile-edit-btn" id="mobileEditBtn" onclick="showMobileEditMenu()">✏️ 編輯</button>
-                    <button class="tool-btn mobile-back-btn" id="mobileBackToolbarBtn" onclick="openMobileSidebar()">← 返回設定</button>
+                    <button class="tool-btn mobile-edit-btn" id="mobileEditBtn" type="button">✏️ 編輯節點</button>
+                    <button class="tool-btn mobile-back-toolbar-btn" id="mobileBackToolbarBtn" type="button">⚙️ 設定</button>
                 </div>
                 
                 <div class="toolbar-info" id="toolbarInfo">雙擊節點展開/收合 | 右鍵編輯</div>
@@ -3571,6 +3571,26 @@
                     if (e.key === 'Escape') Presentation.close();
                 }
             });
+            
+            // 手機版工具列按鈕（使用 touchend 確保 iOS 相容）
+            const mobileEditBtn = document.getElementById('mobileEditBtn');
+            const mobileBackToolbarBtn = document.getElementById('mobileBackToolbarBtn');
+            
+            if (mobileEditBtn) {
+                mobileEditBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showMobileEditMenu();
+                });
+            }
+            
+            if (mobileBackToolbarBtn) {
+                mobileBackToolbarBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openMobileSidebar();
+                });
+            }
         }
 
         function closeMobileSidebar() {
@@ -4974,14 +4994,26 @@ ${content}`;
         
         // 手機版編輯選單
         function showMobileEditMenu() {
+            console.log('showMobileEditMenu called');
+            console.log('selectedNode:', AppState.selectedNode);
+            
             if (!AppState.selectedNode) {
                 Toast.show('請先點擊選取一個節點', 'warning');
                 return;
             }
-            // 在螢幕中央顯示選單
-            const x = window.innerWidth / 2 - 90;
-            const y = window.innerHeight / 2 - 125;
-            showContextMenu(x, y);
+            
+            // 在螢幕中央偏上顯示選單
+            const menu = document.getElementById('contextMenu');
+            const menuWidth = 200;
+            const menuHeight = 280;
+            const x = Math.max(10, (window.innerWidth - menuWidth) / 2);
+            const y = Math.max(60, (window.innerHeight - menuHeight) / 3);
+            
+            console.log('Showing menu at:', x, y);
+            
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+            menu.classList.add('show');
         }
 
         // ============================================
