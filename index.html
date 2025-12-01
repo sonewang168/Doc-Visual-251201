@@ -2550,18 +2550,41 @@
             .mobile-header {
                 display: flex;
                 height: 56px;
-                padding: 0 16px;
+                padding: 0 12px;
                 background: var(--bg-glass);
                 backdrop-filter: blur(10px);
                 border-bottom: 1px solid var(--border-color);
                 align-items: center;
                 justify-content: space-between;
+                gap: 8px;
+            }
+            
+            .mobile-back-btn {
+                padding: 8px 14px;
+                background: var(--neon-cyan-soft);
+                border: 1px solid var(--neon-cyan);
+                border-radius: var(--radius-md);
+                color: var(--neon-cyan);
+                font-size: 0.85rem;
+                font-weight: 600;
+                font-family: inherit;
+                cursor: pointer;
+                white-space: nowrap;
+                transition: all 0.2s ease;
+            }
+            
+            .mobile-back-btn:hover,
+            .mobile-back-btn:active {
+                background: var(--neon-cyan);
+                color: var(--bg-primary);
             }
             
             .mobile-logo {
                 display: flex;
                 align-items: center;
                 gap: 10px;
+                flex: 1;
+                justify-content: center;
             }
             
             .mobile-logo-icon {
@@ -2942,6 +2965,9 @@
 
     <!-- 手機版頭部 -->
     <header class="mobile-header" id="mobileHeader" style="display: none;">
+        <button class="mobile-back-btn" id="mobileBackBtn" title="返回設定" style="display: none;">
+            ← 設定
+        </button>
         <div class="mobile-logo">
             <span class="mobile-logo-icon">📊</span>
             <span class="mobile-logo-text">AI Visual Summary</span>
@@ -3455,9 +3481,17 @@
             document.getElementById('mobileToggle').addEventListener('click', () => {
                 document.getElementById('sidebar').classList.add('open');
                 document.getElementById('sidebarBackdrop').classList.add('show');
+                updateMobileBackBtn(false);
             });
             document.getElementById('sidebarClose').addEventListener('click', closeMobileSidebar);
             document.getElementById('sidebarBackdrop').addEventListener('click', closeMobileSidebar);
+            
+            // 手機版返回按鈕
+            document.getElementById('mobileBackBtn').addEventListener('click', () => {
+                document.getElementById('sidebar').classList.add('open');
+                document.getElementById('sidebarBackdrop').classList.add('show');
+                updateMobileBackBtn(false);
+            });
             
             // 關閉右鍵選單
             document.addEventListener('click', e => {
@@ -3486,6 +3520,22 @@
         function closeMobileSidebar() {
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('sidebarBackdrop').classList.remove('show');
+            // 關閉側邊欄後顯示返回按鈕
+            updateMobileBackBtn(true);
+        }
+
+        // 更新手機版返回按鈕顯示狀態
+        function updateMobileBackBtn(show) {
+            if (!AppState.isMobile) return;
+            const backBtn = document.getElementById('mobileBackBtn');
+            const menuBtn = document.getElementById('mobileToggle');
+            if (show) {
+                backBtn.style.display = 'block';
+                menuBtn.style.display = 'none';
+            } else {
+                backBtn.style.display = 'none';
+                menuBtn.style.display = 'flex';
+            }
         }
 
         // ============================================
@@ -3612,9 +3662,9 @@
                 document.getElementById('fileSize').textContent = 
                     formatFileSize(file.size) + ' · ' + wordCount.toLocaleString() + ' 字';
                 
-                Toast.show('檔案載入成功', 'success');
+                Toast.show('檔案載入成功，請選擇輸出格式', 'success');
                 
-                if (AppState.isMobile) closeMobileSidebar();
+                // 手機版：不自動關閉側邊欄，讓使用者選擇格式
             } catch (e) {
                 console.error('檔案讀取錯誤:', e);
                 Loading.hide();
