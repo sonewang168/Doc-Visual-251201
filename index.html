@@ -4138,6 +4138,9 @@ ${content}`;
                         
                         // 手機版操作
                         if (AppState.isMobile) {
+                            // 記住節點 ID
+                            const nodeId = d._id;
+                            
                             // 先選取節點（所有節點都可以被選取編輯）
                             AppState.selectedNode = d;
                             this.updateSelection();
@@ -4145,8 +4148,8 @@ ${content}`;
                             // 如果有子節點，執行展開/收合
                             if (d.children || d._children) {
                                 this.toggleNode(d);
+                                // toggleNode 已經會重新設定 selectedNode
                             }
-                            // 無論如何都選取了，可以點工具列的編輯按鈕
                             return;
                         }
                         
@@ -4247,7 +4250,8 @@ ${content}`;
             },
             
             updateSelection: function() {
-                d3Group.selectAll('.mm-node').classed('selected', d => d === AppState.selectedNode);
+                const selectedId = AppState.selectedNode ? AppState.selectedNode._id : null;
+                d3Group.selectAll('.mm-node').classed('selected', d => d._id === selectedId);
             },
             
             dragStart: function(e, d) {
@@ -4261,20 +4265,51 @@ ${content}`;
                 if (!node) node = AppState.selectedNode;
                 if (!node) return;
                 hideContextMenu();
+                
+                // 記住選取的節點 ID
+                const selectedId = node._id;
+                
                 if (node.children) { node._children = node.children; node.children = null; }
                 else if (node._children) { node.children = node._children; node._children = null; }
+                
                 this.render(AppState.mindmapData);
+                
+                // render 後重新找到節點並更新 selectedNode
+                if (selectedId) {
+                    const findNode = (n) => {
+                        if (n._id === selectedId) return n;
+                        if (n.children) for (const c of n.children) { const r = findNode(c); if (r) return r; }
+                        if (n._children) for (const c of n._children) { const r = findNode(c); if (r) return r; }
+                        return null;
+                    };
+                    AppState.selectedNode = findNode(AppState.mindmapData);
+                    this.updateSelection();
+                }
             },
             
             expandBranch: function() {
                 if (!AppState.selectedNode) return;
                 hideContextMenu();
+                const selectedId = AppState.selectedNode._id;
+                
                 function expand(n) {
                     if (n._children) { n.children = n._children; n._children = null; }
                     if (n.children) n.children.forEach(expand);
                 }
                 expand(AppState.selectedNode);
                 this.render(AppState.mindmapData);
+                
+                // render 後重新找到節點
+                if (selectedId) {
+                    const findNode = (n) => {
+                        if (n._id === selectedId) return n;
+                        if (n.children) for (const c of n.children) { const r = findNode(c); if (r) return r; }
+                        if (n._children) for (const c of n._children) { const r = findNode(c); if (r) return r; }
+                        return null;
+                    };
+                    AppState.selectedNode = findNode(AppState.mindmapData);
+                    this.updateSelection();
+                }
             },
             
             expandAll: function() {
