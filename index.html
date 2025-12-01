@@ -2547,30 +2547,11 @@
                 padding: 0 12px;
                 background: var(--bg-glass);
                 backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
                 border-bottom: 1px solid var(--border-color);
                 align-items: center;
                 justify-content: space-between;
                 gap: 8px;
-            }
-            
-            .mobile-back-btn {
-                padding: 8px 14px;
-                background: var(--neon-cyan-soft);
-                border: 1px solid var(--neon-cyan);
-                border-radius: var(--radius-md);
-                color: var(--neon-cyan);
-                font-size: 0.85rem;
-                font-weight: 600;
-                font-family: inherit;
-                cursor: pointer;
-                white-space: nowrap;
-                transition: all 0.2s ease;
-            }
-            
-            .mobile-back-btn:hover,
-            .mobile-back-btn:active {
-                background: var(--neon-cyan);
-                color: var(--bg-primary);
             }
             
             .mobile-logo {
@@ -2610,6 +2591,42 @@
             .mobile-toggle:hover {
                 background: var(--neon-cyan-soft);
                 border-color: var(--neon-cyan);
+            }
+            
+            /* 手機版返回按鈕 */
+            .mobile-back-btn {
+                padding: 10px 16px;
+                background: linear-gradient(135deg, #00f5ff22, #bf00ff22);
+                border: 2px solid #00f5ff;
+                border-radius: 8px;
+                color: #00f5ff;
+                font-size: 14px;
+                font-weight: 700;
+                font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                cursor: pointer;
+                white-space: nowrap;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+            }
+            
+            .mobile-back-btn:active {
+                background: #00f5ff;
+                color: #0a0f1a;
+                transform: scale(0.95);
+            }
+            
+            /* 手機版編輯按鈕 */
+            .mobile-edit-btn {
+                background: linear-gradient(135deg, #bf00ff33, #ff00aa33) !important;
+                border-color: #bf00ff !important;
+                color: #ff00aa !important;
+                font-weight: 700 !important;
+                -webkit-tap-highlight-color: transparent;
+            }
+            
+            .mobile-edit-btn:active {
+                background: #bf00ff !important;
+                color: white !important;
             }
             
             /* 側邊欄關閉按鈕 */
@@ -3170,6 +3187,9 @@
                     <button class="tool-btn" onclick="Download.png()">🖼️ PNG</button>
                 </div>
                 
+                <!-- 手機版編輯按鈕 -->
+                <button class="tool-btn mobile-edit-btn" id="mobileEditBtn" onclick="showMobileEditMenu()" style="display:none;">✏️ 編輯節點</button>
+                
                 <div class="toolbar-spacer"></div>
                 <div class="toolbar-info" id="toolbarInfo">雙擊節點展開/收合 | 右鍵編輯</div>
             </div>
@@ -3703,26 +3723,32 @@
         function updateToolbar() {
             const mindmapTools = document.getElementById('mindmapTools');
             const toolbarInfo = document.getElementById('toolbarInfo');
+            const mobileEditBtn = document.getElementById('mobileEditBtn');
             
             switch (AppState.currentFormat) {
                 case 'mindmap':
                     mindmapTools.style.display = 'flex';
                     if (AppState.isMobile) {
-                        toolbarInfo.textContent = '點擊展開/收合 | 長按編輯';
+                        toolbarInfo.textContent = '點擊節點展開/收合';
+                        mobileEditBtn.style.display = 'block';
                     } else {
                         toolbarInfo.textContent = '雙擊節點展開/收合 | 右鍵編輯';
+                        mobileEditBtn.style.display = 'none';
                     }
                     break;
                 case 'flowchart':
                     mindmapTools.style.display = 'none';
+                    mobileEditBtn.style.display = 'none';
                     toolbarInfo.textContent = '拖曳平移 | 滾輪縮放';
                     break;
                 case 'infographic':
                     mindmapTools.style.display = 'none';
+                    mobileEditBtn.style.display = 'none';
                     toolbarInfo.textContent = '9宮格資訊展示';
                     break;
                 case 'summary':
                     mindmapTools.style.display = 'none';
+                    mobileEditBtn.style.display = 'none';
                     toolbarInfo.textContent = '點擊重點展開詳細講解';
                     break;
             }
@@ -4090,15 +4116,26 @@ ${content}`;
                         .on('end', this.dragEnd.bind(this)))
                     .on('click', (e, d) => {
                         e.stopPropagation();
+                        e.preventDefault();
+                        
+                        // 手機版：單擊直接展開/收合
+                        if (AppState.isMobile) {
+                            if (d.children || d._children) {
+                                this.toggleNode(d);
+                            } else {
+                                // 末端節點：選取並顯示選單
+                                AppState.selectedNode = d;
+                                this.updateSelection();
+                                // 顯示浮動操作按鈕
+                                this.showMobileActions(d, e);
+                            }
+                            return;
+                        }
+                        
                         // 電腦版：雙擊展開/收合
-                        if (!AppState.isMobile && e.detail === 2) { 
+                        if (e.detail === 2) { 
                             this.toggleNode(d); 
                             return; 
-                        }
-                        // 手機版：單擊展開/收合（如果有子節點）
-                        if (AppState.isMobile && (d.children || d._children)) {
-                            this.toggleNode(d);
-                            return;
                         }
                         AppState.selectedNode = d;
                         this.updateSelection();
@@ -4109,28 +4146,6 @@ ${content}`;
                         AppState.selectedNode = d;
                         this.updateSelection();
                         showContextMenu(e.pageX, e.pageY);
-                    })
-                    // 手機版長按支援
-                    .on('touchstart', function(e, d) {
-                        if (!AppState.isMobile) return;
-                        const touch = e.touches[0];
-                        d._longPressTimer = setTimeout(() => {
-                            AppState.selectedNode = d;
-                            MindMap.updateSelection();
-                            showContextMenu(touch.pageX, touch.pageY);
-                        }, 600);
-                    })
-                    .on('touchend', function(e, d) {
-                        if (d._longPressTimer) {
-                            clearTimeout(d._longPressTimer);
-                            d._longPressTimer = null;
-                        }
-                    })
-                    .on('touchmove', function(e, d) {
-                        if (d._longPressTimer) {
-                            clearTimeout(d._longPressTimer);
-                            d._longPressTimer = null;
-                        }
                     });
                 
                 node.append('rect')
@@ -4302,6 +4317,14 @@ ${content}`;
                 remove(AppState.mindmapData, AppState.selectedNode);
                 AppState.selectedNode = null;
                 this.render(AppState.mindmapData);
+            },
+            
+            // 手機版：顯示浮動操作選單
+            showMobileActions: function(d, e) {
+                // 直接使用 context menu
+                const x = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : window.innerWidth / 2);
+                const y = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : window.innerHeight / 2);
+                showContextMenu(x, y);
             }
         };
 
@@ -4885,6 +4908,8 @@ ${content}`;
             const mw = 180, mh = 250;
             if (x + mw > window.innerWidth) x = window.innerWidth - mw - 10;
             if (y + mh > window.innerHeight) y = window.innerHeight - mh - 10;
+            if (x < 10) x = 10;
+            if (y < 10) y = 10;
             menu.style.left = x + 'px';
             menu.style.top = y + 'px';
             menu.classList.add('show');
@@ -4892,6 +4917,18 @@ ${content}`;
 
         function hideContextMenu() {
             document.getElementById('contextMenu').classList.remove('show');
+        }
+        
+        // 手機版編輯選單
+        function showMobileEditMenu() {
+            if (!AppState.selectedNode) {
+                Toast.show('請先點擊選取一個節點', 'warning');
+                return;
+            }
+            // 在螢幕中央顯示選單
+            const x = window.innerWidth / 2 - 90;
+            const y = window.innerHeight / 2 - 125;
+            showContextMenu(x, y);
         }
 
         // ============================================
